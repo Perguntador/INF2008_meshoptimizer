@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "meshoptimizer": "^0.25.0",
+    "three": "^0.181.2"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
+  },
+  "scripts": {
+    "dev": "vite"
+  }
+}
