@@ -137,16 +137,16 @@ function repackGeometry(child, vertexShader, fragmentShader, matcapTexture) {
 
     // 5. Remapeamento de Normais
     const normalAttr = geometry.attributes.normal;
-    const newNormals = new Int16Array(realVertexCount * 3);
+    const newNormals = new Int8Array(realVertexCount * 3);
     const remapTable = new Uint32Array(repackerModule.wasmMemory.buffer, remapPtr, vertexCount);
 
     if (normalAttr) {
         for (let i = 0; i < vertexCount; i++) {
             const newIdx = remapTable[i];
-            // Converte Float norm (-1.0 a 1.0) para Snorm16 (-32767 a 32767)
-            newNormals[newIdx * 3 + 0] = Math.round(normalAttr.getX(i) * 32767);
-            newNormals[newIdx * 3 + 1] = Math.round(normalAttr.getY(i) * 32767);
-            newNormals[newIdx * 3 + 2] = Math.round(normalAttr.getZ(i) * 32767);
+            // Converte Float norm (-1.0 a 1.0) para Snorm8 (-127 a 127)
+            newNormals[newIdx * 3 + 0] = Math.round(normalAttr.getX(i) * 127);
+            newNormals[newIdx * 3 + 1] = Math.round(normalAttr.getY(i) * 127);
+            newNormals[newIdx * 3 + 2] = Math.round(normalAttr.getZ(i) * 127);
         }
     }
 
