@@ -6,9 +6,9 @@ echo "[LINUX/MAC] Compilando Repacker (WASM) para Shared Lib..."
 echo "=========================================="
 
 # 1. Definição de Caminhos
-SOURCE_FILE="src/repacker.cpp"
-BUILD_DIR="build"
-DEST_DIR="../../src/lib/repacker"
+SOURCE_FILE="tools/encoder-wasm/src/repacker.cpp"
+BUILD_DIR="tools/encoder-wasm/build"
+DEST_DIR="src/lib/repacker"
 
 # 2. Cria diretórios se não existirem (-p cria pais se necessário e não reclama se já existir)
 mkdir -p "$BUILD_DIR"

@@ -6,9 +6,9 @@ import sys
 from datetime import datetime
 
 # --- Configurações ---
-INPUT_FILE = "./assets/lucy.ply"
-INTERMEDIATE_FILE = "./assets/lucy.glb"
-OUTPUT_FILE = "./assets/lucy.chunked.glb"
+INPUT_FILE = "./assets/lucy/lucy.ply"
+INTERMEDIATE_FILE = "./assets/lucy/lucy.glb"
+OUTPUT_FILE = "./assets/lucy/lucy.chunked.glb"
 EXPORT_INTERMEDIATE = True
 
 LIMIT_VERTS = 65000 

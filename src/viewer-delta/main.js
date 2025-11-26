@@ -6,8 +6,8 @@ import createRepacker from '../lib/repacker/repacker.js';
 // --- CONFIGURAÇÕES ---
 const CONFIG = {
     assets: {
-        // model: '/lucy/lucy.opt.glb',
-        model: '/lucy/lucy.chunked.opt.glb',
+        model: '/lucy/lucy.opt.glb',
+        // model: '/lucy/lucy.chunked.opt.glb',
         texture: '/matcap/matcap5.png'
     },
     shaders: {

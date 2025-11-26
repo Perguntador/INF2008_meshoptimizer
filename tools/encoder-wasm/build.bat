@@ -7,9 +7,9 @@ echo ==========================================
 
 :: 1. Definição de Caminhos (Relativos ao script)
 :: A pasta de destino agora é a biblioteca compartilhada
-set "SOURCE_FILE=src\repacker.cpp"
-set "BUILD_DIR=build"
-set "DEST_DIR=..\..\src\lib\repacker"
+set "SOURCE_FILE=tools\encoder-wasm\src\repacker.cpp"
+set "BUILD_DIR=tools\encoder-wasm\build"
+set "DEST_DIR=src\lib\repacker"
 
 :: 2. Cria diretórios se não existirem
 :: O comando mkdir cria a árvore de pastas completa (src -> lib -> repacker)
