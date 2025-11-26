@@ -6,8 +6,8 @@ import createRepacker from '../lib/repacker/repacker.js';
 // --- CONFIGURAÇÕES ---
 const CONFIG = {
     assets: {
-        model: '/lucy/lucy.opt.glb',
-        // model: '/lucy/lucy.chunked.opt.glb',
+        // model: '/lucy/lucy.opt.glb',
+        model: '/lucy/lucy.chunked.opt.glb',
         texture: '/matcap/matcap5.png'
     },
     shaders: {
@@ -312,9 +312,27 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+let lastTime = performance.now();
+let frameCount = 0;
+
 function animate() {
     renderer.render(scene, camera);
-    // if (modelContainer) modelContainer.rotation.y += 0.05;
+
+    // Rotação opcional
+    if (modelContainer) modelContainer.rotation.y += 0.05;
+
+    // FPS
+    frameCount++;
+    const now = performance.now();
+
+    if (now - lastTime >= 1000 * 10) { // A cada 10 segundos
+        const fps = frameCount / 10;
+        console.log("FPS:", fps);
+
+        frameCount = 0;
+        lastTime = now;
+    }
+
 }
 
 init();
