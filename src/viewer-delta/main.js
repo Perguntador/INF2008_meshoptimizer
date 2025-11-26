@@ -240,7 +240,7 @@ async function setupAndRun() {
 
                     const normalAttr = geometry.attributes.normal;
                     // Cria buffer para as novas normais (Tamanho real com padding * 3 eixos)
-                    const newNormals = new Int8Array(realVertexCount * 3);
+                    const newNormals = new Int16Array(realVertexCount * 3);
                     
                     // Acessa a tabela de remapeamento que ainda está no Wasm
                     const remapTable = new Uint32Array(repackerModule.wasmMemory.buffer, remapPtr, vertexCount);
@@ -372,7 +372,9 @@ async function setupAndRun() {
                     }
 
                     // 4. Inserção das Normais Corretas (DEFINITIVO)
-                    child.geometry.setAttribute('normal', new THREE.BufferAttribute(newNormals, 3));
+                    const normalAttribute = new THREE.BufferAttribute(newNormals, 3, true);
+                    child.geometry.setAttribute('normal', normalAttribute);
+                    // child.geometry.setAttribute('normal', new THREE.BufferAttribute(newNormals, 3));
 
 
                     // 5. Configuração do Material
