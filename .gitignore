@@ -1,2 +1,4 @@
 *.glb
 node_modules/
+dist/
+tools/**/build/
