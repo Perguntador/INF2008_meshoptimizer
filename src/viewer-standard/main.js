@@ -2,242 +2,194 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'meshoptimizer';
 
-
-// --- ARQUIVOS DE ENTRADA ---
-// 1. O modelo
-const scenePath = '/lucy/lucy.opt.glb';
-// const scenePath = '/lucy/lucy.glb';
-// const scenePath = '/lucy/lucy.chunked.glb';
-// const scenePath = '/lucy/lucy.chunked.opt.glb';
-
-
-// 2. Os shaders
-const vertexShaderPath = './shaders/vertexShader.glsl';
-const fragmentShaderPath = './shaders/fragmentShader.glsl';
-const matcapTexturePath = '/matcap/matcap5.png'; 
-
-
-
-async function setupAndRun() {
-
-    let model; 
-    let pivot;
-
-    function createAxisLine(start, end, color = 0xff0000) {
-        const material = new THREE.LineBasicMaterial({ color });
-        const points = [ start, end ];
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        return new THREE.Line(geometry, material);
+// --- CONFIGURAÇÕES ---
+const CONFIG = {
+    assets: {
+        model: '/lucy/lucy.opt.glb',
+        // Alternativas para debug:
+        // model: '/lucy/lucy.glb',
+        // model: '/lucy/lucy.chunked.glb',
+        texture: '/matcap/matcap5.png'
+    },
+    shaders: {
+        vertex: './shaders/vertexShader.glsl',
+        fragment: './shaders/fragmentShader.glsl'
+    },
+    camera: {
+        fov: 75,
+        near: 0.1,
+        far: 1000
+    },
+    colors: {
+        background: 0x222222
     }
+};
 
-    function createAxes(size = 1) {
-        const axes = new THREE.Group();
+// --- VARIÁVEIS GLOBAIS ---
+let scene, camera, renderer;
+let modelContainer, modelMesh; // Container (Pivot) e a Malha
 
-        // X (vermelho)
-        axes.add(createAxisLine(
-            new THREE.Vector3(-size, 0, 0),
-            new THREE.Vector3(size, 0, 0),
-            0xff0000
-        ));
+// --- FUNÇÕES UTILITÁRIAS ---
 
-        // Y (verde)
-        axes.add(createAxisLine(
-            new THREE.Vector3(0, -size, 0),
-            new THREE.Vector3(0, size, 0),
-            0x00ff00
-        ));
+/**
+ * Calcula estimativa de uso de VRAM da geometria e texturas.
+ * Suporta atributos padrão do Three.js e estruturas comprimidas do GLTFLoader/Meshopt.
+ */
+function calculateMemoryUsage(object) {
+    let totalBytes = 0;
 
-        // Z (azul)
-        axes.add(createAxisLine(
-            new THREE.Vector3(0, 0, -size),
-            new THREE.Vector3(0, 0, size),
-            0x0000ff
-        ));
+    object.traverse((child) => {
+        if (child.isMesh) {
+            const geom = child.geometry;
+            const attrs = ['position', 'normal', 'uv', 'color'];
 
-        return axes;
-    }
-
-
-    // --- CARREGAMENTO ASSÍNCRONO ---
-    // Carrega os shaders e a textura de uma só vez
-    const textureLoader = new THREE.TextureLoader();
-    const [vertexShader, fragmentShader, matcapTexture] = await Promise.all([
-        fetch(vertexShaderPath).then(res => res.text()),
-        fetch(fragmentShaderPath).then(res => res.text()),
-        textureLoader.loadAsync(matcapTexturePath)
-    ]);
-
-    // --- CONFIGURAÇÃO BÁSICA ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222); // Fundo escuro
-    const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
-
-    // --- MATERIAL CUSTOMIZADO ---
-    // Define os uniforms que passaremos aos shaders
-    const customUniforms = {
-        u_matcap: { value: matcapTexture }
-    };
-
-    // Cria o ShaderMaterial (APENAS UMA VEZ)
-    const customMaterial = new THREE.ShaderMaterial({
-        vertexShader: vertexShader,
-        fragmentShader: fragmentShader,
-        uniforms: customUniforms,
-        side: THREE.DoubleSide // Para garantir que veremos o interior (se houver)
-    });
-
-    // --- CARREGAMENTO DO MODELO ---
-    const loader = new GLTFLoader();
-    loader.setMeshoptDecoder(MeshoptDecoder);
-
-    loader.load(
-        scenePath,
-        (gltf) => {
-            model = gltf.scene; 
-
-            let tamanho = 0;
-
-
-            // Percorre o modelo para aplicar o material e centrar a geometria
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    // Aplica nosso material customizado
-                    child.material = customMaterial;
-                    const posAttr = child.geometry.attributes.position
-                    // console.log('Geometria:', posAttr);
-                    
-                    
-                    console.log(child.geometry);
-                    
-                    
-                    // console.log(child.geometry.attributes.position.data);
-                    // console.log(child.geometry.attributes.position.data.count);
-
-                    if (child.geometry.attributes.normal?.data) {
-                        tamanho += child.geometry.attributes.normal.data.array.byteLength;
-                        console.log("Normal size:", child.geometry.attributes.normal.data.array.byteLength);
-                        console.log("Normal count:", child.geometry.attributes.normal.data.count);
+            // 1. Calcula tamanho dos atributos de geometria
+            attrs.forEach(attrName => {
+                const attr = geom.attributes[attrName];
+                if (attr) {
+                    // Verifica se os dados estão diretos (.array) ou aninhados (.data.array para alguns loaders)
+                    const array = attr.data?.array || attr.array;
+                    if (array) {
+                        totalBytes += array.byteLength;
                     }
-                    else if (child.geometry.attributes.normal) {
-                        tamanho += child.geometry.attributes.normal.array.byteLength;
-                        console.log("Normal size:", child.geometry.attributes.normal.array.byteLength);
-                        console.log("Normal count:", child.geometry.attributes.normal.count);
-                    }
-                    else{
-                        console.log('Geometria não possui normal!');
-                    }
-
-                    if (child.geometry.attributes.position?.data) {
-                        tamanho += child.geometry.attributes.position.data.array.byteLength;
-                        console.log("Position size:", child.geometry.attributes.position.data.array.byteLength);
-                        console.log("Position count:", child.geometry.attributes.position.data.count);
-                    }
-                    else if (child.geometry.attributes.position) {
-                        tamanho += child.geometry.attributes.position.array.byteLength;
-                        console.log("Position size:", child.geometry.attributes.position.array.byteLength);
-                        console.log("Position count:", child.geometry.attributes.position.count);
-                    }
-                    else{
-                        console.log('Geometria não possui posição!');
-                    }
-
-                    if (child.geometry.index) {
-                        tamanho += child.geometry.index.array.byteLength;
-                        console.log("Index size:", child.geometry.index.array.byteLength);
-                        console.log("Index count:", child.geometry.index.count);
-                    } else {
-                        console.log('Geometria não possui índice!');
-                    }
-
-
-                    
-                    // Medindo a Textura de Âncoras (se existir no material)
-                    if (child.material.uniforms && child.material.uniforms.u_anchors) {
-                        const texture = child.material.uniforms.u_anchors.value;
-                        const image = texture.image;
-                        
-                        if (image && image.data) {
-                            // data.byteLength dá o tamanho exato do ArrayBuffer da textura
-                            const texSize = image.data.byteLength;
-                            tamanho += texSize;
-                            console.log("Texture (Anchors) size:", texSize);
-                            
-                            // Verificação de Mipmaps (O vilão oculto)
-                            if (texture.generateMipmaps) {
-                                console.warn("ATENÇÃO: Mipmaps ativados! O tamanho na VRAM será ~33% maior.");
-                                tamanho += Math.floor(texSize * 0.33);
-                            }
-                        }
-                    }
-
-                    
                 }
             });
 
-            
-            console.log("Tamanho TOTAL estimado (Bytes):", tamanho);
-            console.log("Tamanho TOTAL estimado (MB):", (tamanho / 1024 / 1024).toFixed(2));
+            // 2. Calcula tamanho do índice
+            if (geom.index) {
+                const array = geom.index.data?.array || geom.index.array;
+                if (array) {
+                    totalBytes += array.byteLength;
+                }
+            }
 
-
-            pivot = new THREE.Object3D();
-            scene.add(pivot);
-
-            // Insere o modelo dentro do pivô
-            pivot.add(model);
-
-            // Calcula a caixa "bruta" do modelo como ele veio
-            const box = new THREE.Box3().setFromObject(model);
-            const boxCenter = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3()).length();
-
-            // Centraliza o MODELO (o contêiner), movendo-o na direção oposta ao centro
-            // model.position.sub(boxCenter);
-
-            // --- ENQUADRAMENTO E TILT ---
-            // Posiciona a câmera com base no tamanho calculado corretamente
-            // camera.position.set(0*size * 0.5, size * 0.4, size * 0.8); 
-            camera.position.set(0*size * 0.5, size * 0.2, size * 0.8); 
-            // camera.position.set(size * 0.0, -size * 0.6, size * 0.0); 
-            camera.lookAt(0, 0, 0); 
-            camera.far = size * 5;
-            camera.updateProjectionMatrix(); 
-            
-            // Aplica as rotações desejadas
-            // model.rotation.x = -Math.PI/2;
-            pivot.rotation.y = Math.PI;
-
-            model.position.x = -730;
-            model.position.z = -150;
-            model.position.y = -200;
-                    
-            // const axes = createAxes(size); // tamanho
-            // scene.add(axes);
-
-            console.log('Modelo carregado e centralizado corretamente!');
-        },
-        (xhr) => {
-            console.log((xhr.loaded / xhr.total * 100) + '% carregado');
-        },
-        (error) => {
-            console.error('Erro ao carregar o modelo:', error);
+            // 3. Calcula texturas customizadas (Ex: Âncoras/Dados em textura)
+            // Nota: Texturas padrão (map, normalMap) geralmente são compartilhadas e devem ser contadas separadamente.
+            if (child.material.uniforms) {
+                for (const key in child.material.uniforms) {
+                    const value = child.material.uniforms[key].value;
+                    if (value && value.isTexture && value.image && value.image.data) {
+                        const texSize = value.image.data.byteLength;
+                        totalBytes += texSize;
+                        
+                        if (value.generateMipmaps) {
+                            totalBytes += Math.floor(texSize * 0.33);
+                        }
+                    }
+                }
+            }
         }
-    );
+    });
 
-    
-
-    // --- LOOP DE ANIMAÇÃO ---
-    function animate() {
-        renderer.render( scene, camera );
-        
-        if (pivot && model) {
-            // pivot.rotation.y += 0.1;
-        }
-    }
-    renderer.setAnimationLoop( animate );
+    return totalBytes;
 }
 
-// Inicia a aplicação
-setupAndRun();
+// --- INICIALIZAÇÃO ---
+
+async function init() {
+    // 1. Setup Básico (Scene, Camera, Renderer)
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.background);
+
+    camera = new THREE.PerspectiveCamera(
+        CONFIG.camera.fov,
+        window.innerWidth / window.innerHeight,
+        CONFIG.camera.near,
+        CONFIG.camera.far
+    );
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // 2. Listener de Redimensionamento
+    window.addEventListener('resize', onWindowResize, false);
+
+    // 3. Carregamento de Recursos (Shaders e Textura)
+    const textureLoader = new THREE.TextureLoader();
+    const [vertexShader, fragmentShader, matcapTexture] = await Promise.all([
+        fetch(CONFIG.shaders.vertex).then(res => res.text()),
+        fetch(CONFIG.shaders.fragment).then(res => res.text()),
+        textureLoader.loadAsync(CONFIG.assets.texture)
+    ]);
+
+    // 4. Criação do Material Global
+    const customMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        uniforms: {
+            u_matcap: { value: matcapTexture }
+        },
+        side: THREE.DoubleSide
+    });
+
+    // 5. Carregamento do Modelo
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+
+    try {
+        const gltf = await loader.loadAsync(CONFIG.assets.model);
+        modelMesh = gltf.scene;
+
+        // Processamento da Malha
+        modelMesh.traverse((child) => {
+            if (child.isMesh) {
+                child.material = customMaterial;
+            }
+        });
+
+        // Logs de Memória
+        const bytes = calculateMemoryUsage(modelMesh);
+        console.log(`[Memory] Tamanho estimado da Geometria: ${(bytes / 1024 / 1024).toFixed(2)} MB`);
+
+        // Setup de Posicionamento (Pivot)
+        modelContainer = new THREE.Object3D();
+        modelContainer.add(modelMesh);
+        scene.add(modelContainer);
+
+        setupPositioning(modelMesh);
+
+    } catch (error) {
+        console.error('Erro fatal ao carregar o modelo:', error);
+    }
+
+    // 6. Inicia Loop
+    renderer.setAnimationLoop(animate);
+}
+
+function setupPositioning(mesh) {
+    // Calcula Bounding Box para referência de tamanho e câmera
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = box.getSize(new THREE.Vector3()).length();
+
+    // Configuração Manual de Posição e Rotação
+    // Nota: Valores mantidos conforme especificação original para alinhamento visual
+    modelContainer.rotation.y = Math.PI;
+    
+    mesh.position.set(-730, -200, -150);
+
+    // Configuração Automática da Câmera baseada no tamanho do objeto
+    camera.position.set(0, size * 0.2, size * 0.8);
+    camera.lookAt(0, 0, 0);
+    camera.far = size * 5;
+    camera.updateProjectionMatrix();
+
+    console.log('Cena configurada.');
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    renderer.render(scene, camera);
+    
+    // Rotação opcional para debug
+    // if (modelContainer) modelContainer.rotation.y += 0.05;
+}
+
+// Executa
+init();

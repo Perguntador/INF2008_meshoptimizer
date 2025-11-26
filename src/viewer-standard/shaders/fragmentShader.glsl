@@ -1,45 +1,18 @@
-// ===================================================
-// ARQUIVO: fragmentShader.glsl (Corrigido para MATCAP)
-// ===================================================
-
-/*
- * 1. PRECISÃO
- */
 precision mediump float;
 
+// Uniforms e Varyings
+uniform sampler2D u_matcap; // Textura MatCap carregada via JS
+in vec3 v_viewNormal;       // Normal interpolada recebida do Vertex Shader
 
-/*
- * 2. UNIFORME (Vindo do JavaScript)
- *
- * A textura matcap que você carregou no 'main.js'.
- */
-uniform sampler2D u_matcap;
-
-
-/*
- * 3. "in" (Vindo do Vertex Shader)
- *
- * O nome DEVE corresponder ao 'out' do vertex shader.
- */
-in vec3 v_viewNormal;
-
-
-/*
- * 4. A FUNÇÃO PRINCIPAL (main)
- */
 void main() {
+    // 1. Mapeamento Esférico (Matcap UV)
+    // Converte a normal de View Space [-1, 1] para coordenadas de textura [0, 1]
+    vec2 uv = v_viewNormal.xy * 0.5 + 0.5;
 
-    // Etapa 1: Calcular o UV do Matcap
-    // Converte a normal (intervalo -1.0 a 1.0) para
-    // uma coordenada de textura (intervalo 0.0 a 1.0).
-    vec2 matcapUV = v_viewNormal.xy * 0.5 + 0.5;
+    // 2. Amostragem da Textura
+    // Nota: texture2D é legado (GLSL 1.0), mas mantido aqui por compatibilidade com ShaderMaterial padrão
+    vec4 color = texture2D(u_matcap, uv);
 
-    // Etapa 2: Ler a Textura Matcap
-    // Lê a cor da sua imagem matcap usando a
-    // coordenada que acabamos de calcular.
-    vec4 matcapColor = texture2D(u_matcap, matcapUV);
-
-    // Etapa 3: A Saída
-    // Define a cor final do pixel.
-    gl_FragColor = vec4(matcapColor.rgb, 1.0);
+    // 3. Saída final
+    gl_FragColor = vec4(color.rgb, 1.0);
 }

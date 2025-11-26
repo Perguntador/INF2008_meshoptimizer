@@ -1,29 +1,11 @@
-// ===================================================
-// ARQUIVO: vertexShader.glsl (Corrigido para MATCAP)
-// ===================================================
-
-/*
- * 1. "out" (A Ponte Customizada)
- *
- * Vamos passar a 'Normal em Espaço de Visão'
- * para o fragment shader.
- */
+// Varyings (Output para o Fragment Shader)
 out vec3 v_viewNormal;
 
-
-/*
- * 2. A FUNÇÃO PRINCIPAL (main)
- *
- * Nós usamos 'normal' (injetado) e 'normalMatrix' (injetado)
- * para calcular a direção que este vértice está
- * apontando em relação à câmera.
- */
 void main() {
-    
-    // Etapa 1: A "Ponte"
-    // Calcula a normal em relação à câmera
-    v_viewNormal = normalize( normalMatrix * normal );
+    // 1. Calcula a normal no espaço da câmera (View Space) para o efeito Matcap.
+    // 'normal' e 'normalMatrix' são atributos injetados automaticamente pelo Three.js.
+    v_viewNormal = normalize(normalMatrix * normal);
 
-    // Etapa 2: A Saída Obrigatória (A Posição Final)
+    // 2. Projeção padrão de posição.
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
