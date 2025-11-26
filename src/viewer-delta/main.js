@@ -3,6 +3,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'meshoptimizer';
 import createRepacker from '../lib/repacker/repacker.js';
 
+
+
 // --- CONFIGURAÇÕES ---
 const CONFIG = {
     assets: {
@@ -222,6 +224,8 @@ function repackGeometry(child, vertexShader, fragmentShader, matcapTexture) {
 // --- INICIALIZAÇÃO ---
 
 async function init() {
+    console.time("Total load time");
+
     // 1. Inicializa Wasm
     repackerModule = await createRepacker();
     repackerModule._set_block_size(CONFIG.repacker.blockSize);
@@ -288,6 +292,7 @@ async function init() {
     }
 
     renderer.setAnimationLoop(animate);
+    console.timeEnd("Total load time");
 }
 
 function setupPositioning(mesh) {

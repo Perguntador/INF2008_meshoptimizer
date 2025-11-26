@@ -5,8 +5,8 @@ import { MeshoptDecoder } from 'meshoptimizer';
 // --- CONFIGURAÇÕES ---
 const CONFIG = {
     assets: {
-        model: '/lucy/lucy.glb',
-        // model: '/lucy/lucy.opt.glb',
+        // model: '/lucy/lucy.glb',
+        model: '/lucy/lucy.opt.glb',
         // model: '/lucy/lucy.chunked.glb',
         // model: '/lucy/lucy.chunked.opt.glb',
         texture: '/matcap/matcap5.png'
@@ -87,6 +87,8 @@ function calculateMemoryUsage(object) {
 // --- INICIALIZAÇÃO ---
 
 async function init() {
+    console.time("Total load time");
+
     // 1. Setup Básico (Scene, Camera, Renderer)
     scene = new THREE.Scene();
     scene.background = new THREE.Color(CONFIG.colors.background);
@@ -156,6 +158,7 @@ async function init() {
 
     // 6. Inicia Loop
     renderer.setAnimationLoop(animate);
+    console.timeEnd("Total load time");
 }
 
 function setupPositioning(mesh) {
